@@ -103,10 +103,17 @@ def create_class_diagram(functions, files_data):
         dot.node(func_name, label=label, shape='rect', style='filled', fillcolor='lightblue',
                  fontsize='10', width='2.5', height='auto', fixedsize='false', labelloc='t', margin='0.2,0.2')
 
+    # Use a set to track unique edges
+    edges = set()
+
     # Add edges based on function calls
     for func_name, details in functions.items():
         for called_func in details["calls"]:
-            dot.edge(func_name, called_func)
+            # Add the edge only if it doesn't already exist
+            edge = (func_name, called_func)
+            if edge not in edges:
+                dot.edge(func_name, called_func)
+                edges.add(edge)
 
     return dot
 
