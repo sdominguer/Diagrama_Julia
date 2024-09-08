@@ -78,8 +78,6 @@ def parse_julia_content(content):
 
 from graphviz import Digraph
 
-from graphviz import Digraph
-
 def create_class_diagram(functions, files_data):
     dot = Digraph()
 
@@ -96,7 +94,7 @@ def create_class_diagram(functions, files_data):
 
         # Create a table structure to organize the information within the node
         label = f"""<
-        <table border="0" cellborder="1" cellspacing="0" cellpadding="4">
+        <table border="0" cellborder="1" cellspacing="0" cellpadding="4" width="200">
             <tr><td><b>File</b></td><td>{file_name}</td></tr>
             <tr><td><b>Imports</b></td><td>{', '.join(imports) if imports else 'None'}</td></tr>
             <tr><td><b>Function</b></td><td>{func_name}</td></tr>
@@ -106,9 +104,9 @@ def create_class_diagram(functions, files_data):
             <tr><td><b>Variables</b></td><td>{', '.join(details["variables"]) if details["variables"] else 'None'}</td></tr>
         </table>>"""
 
-        # Add nodes with a fixed width and a table-based label
-        dot.node(func_name, label=label, shape='rect', style='filled', fillcolor='lightgreen',  # Light color for background
-                 fontsize='10', width='2.5', height='auto', fixedsize='false', labelloc='t', margin='0.2,0.2')
+        # Add nodes without fixedsize, letting them grow vertically
+        dot.node(func_name, label=label, shape='rect', style='filled', fillcolor='lightgreen',
+                 fontsize='10', width='2.0')
 
     # Use a set to track unique edges
     edges = set()
@@ -123,6 +121,9 @@ def create_class_diagram(functions, files_data):
                 edges.add(edge)
 
     return dot
+
+
+
 
 
 def main():
