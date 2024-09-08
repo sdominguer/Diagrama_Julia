@@ -76,6 +76,10 @@ def parse_julia_content(content):
 
     return functions
 
+from graphviz import Digraph
+
+from graphviz import Digraph
+
 def create_class_diagram(functions, files_data):
     dot = Digraph()
 
@@ -90,17 +94,20 @@ def create_class_diagram(functions, files_data):
         file_name = next((file for file, data in files_data.items() if func_name in data["content"]), None)
         imports = files_data[file_name]["imports"] if file_name else []
 
-        # Define label format with multi-line
-        label = (f'File: {file_name}\n'
-                 f'Imports: {", ".join(imports) if imports else "None"}\n'
-                 f'Function: {func_name}\n'
-                 f'Inputs: {", ".join(details["inputs"]) if details["inputs"] else "None"}\n'
-                 f'Outputs: {", ".join(details["outputs"]) if details["outputs"] else "None"}\n'
-                 f'gdata: {", ".join(details["gdata"]) if details["gdata"] else "None"}\n'
-                 f'Variables: {", ".join(details["variables"]) if details["variables"] else "None"}')
+        # Create a table structure to organize the information within the node
+        label = f"""<
+        <table border="0" cellborder="1" cellspacing="0" cellpadding="4">
+            <tr><td><b>File</b></td><td>{file_name}</td></tr>
+            <tr><td><b>Imports</b></td><td>{', '.join(imports) if imports else 'None'}</td></tr>
+            <tr><td><b>Function</b></td><td>{func_name}</td></tr>
+            <tr><td><b>Inputs</b></td><td>{', '.join(details["inputs"]) if details["inputs"] else 'None'}</td></tr>
+            <tr><td><b>Outputs</b></td><td>{', '.join(details["outputs"]) if details["outputs"] else 'None'}</td></tr>
+            <tr><td><b>Global Data</b></td><td>{', '.join(details["gdata"]) if details["gdata"] else 'None'}</td></tr>
+            <tr><td><b>Variables</b></td><td>{', '.join(details["variables"]) if details["variables"] else 'None'}</td></tr>
+        </table>>"""
 
-        # Add nodes with fixed width but adjustable height
-        dot.node(func_name, label=label, shape='rect', style='filled', fillcolor='lightblue',
+        # Add nodes with a fixed width and a table-based label
+        dot.node(func_name, label=label, shape='rect', style='filled', fillcolor='lightgreen',  # Light color for background
                  fontsize='10', width='2.5', height='auto', fixedsize='false', labelloc='t', margin='0.2,0.2')
 
     # Use a set to track unique edges
@@ -112,10 +119,11 @@ def create_class_diagram(functions, files_data):
             # Add the edge only if it doesn't already exist
             edge = (func_name, called_func)
             if edge not in edges:
-                dot.edge(func_name, called_func)
+                dot.edge(func_name, called_func, color='black', penwidth='2')  # Thicker edges for better visibility
                 edges.add(edge)
 
     return dot
+
 
 def main():
     directory_path = 'archivos'  # Replace with the path to your directory of Julia files
