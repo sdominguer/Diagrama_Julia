@@ -17,9 +17,11 @@ def extract_imports(content):
     import_pattern = re.compile(r"(?:import|using)\s+([\w\.]+)")
     return import_pattern.findall(content)
 
+import re
+
 def parse_julia_content(content):
+    # Patrones de expresión regular
     function_pattern = re.compile(r"function\s+(\w+)\s*\(([^)]*)\)")
-    output_pattern = re.compile(r"(\w+)\s*=\s*([\w\.]+)")
     variable_pattern = re.compile(r"(\w+)\s*::?\s*\w*")
     call_pattern = re.compile(r"(\w+)\(")
     gdata_pattern = re.compile(r"gdata\.(\w+)\s*=\s*(.+)")
@@ -27,7 +29,7 @@ def parse_julia_content(content):
     functions = {}
     current_func = None
 
-    # Find all function definitions
+    # Encontrar todas las definiciones de funciones
     for match in function_pattern.finditer(content):
         func_name = match.group(1)
         params = match.group(2).split(',')
@@ -41,42 +43,48 @@ def parse_julia_content(content):
         }
         current_func = func_name
 
-    # Find all output assignments
-    for match in output_pattern.finditer(content):
-        var_name = match.group(1)
-        expr = match.group(2)
-        
-        # Associate outputs with functions
-        for func in functions.values():
-            if var_name in func["inputs"]:
-                func["outputs"].append(expr)
+    # Dividimos el contenido en líneas
+    lines = content.splitlines()
 
-    # Find all variable declarations and assignments
-    for match in variable_pattern.finditer(content):
-        var_name = match.group(1)
-        if current_func:
+    for i, line in enumerate(lines):
+        line = line.strip()
+
+        # Si es una definición de función, actualizamos `current_func`
+        if line.startswith("function"):
+            func_match = function_pattern.match(line)
+            if func_match:
+                current_func = func_match.group(1)
+        
+        # Buscamos líneas que tengan 'return'
+        if line.startswith("return"):
+            return_value = line[len("return"):].strip()  # Tomamos todo lo que sigue después de 'return'
+            if current_func:
+                functions[current_func]["outputs"].append(return_value)
+        
+        # Asignaciones a gdata
+        gdata_match = gdata_pattern.search(line)
+        if gdata_match and current_func:
+            gdata_var = gdata_match.group(1)
+            functions[current_func]["gdata"].append(gdata_var)
+        
+        # Declaraciones de variables
+        var_match = variable_pattern.search(line)
+        if var_match and current_func:
+            var_name = var_match.group(1)
             functions[current_func]["variables"].append(var_name)
 
-    # Find all function calls and gdata assignments
-    for func_name, details in functions.items():
-        func_start = content.find(f"function {func_name}")
-        func_end = content.find("end", func_start)
-        func_code = content[func_start:func_end]
-
-        # Function calls
-        for call_match in call_pattern.finditer(func_code):
+        # Llamadas a funciones
+        call_match = call_pattern.search(line)
+        if call_match and current_func:
             called_func = call_match.group(1)
-            if called_func in functions and called_func != func_name:
-                details["calls"].append(called_func)
-
-        # gdata assignments
-        for gdata_match in gdata_pattern.finditer(func_code):
-            gdata_var = gdata_match.group(1)
-            details["gdata"].append(gdata_var)
+            if called_func in functions and called_func != current_func:
+                functions[current_func]["calls"].append(called_func)
 
     return functions
 
-from graphviz import Digraph
+
+
+
 
 def create_class_diagram(functions, files_data):
     dot = Digraph()
@@ -93,7 +101,7 @@ def create_class_diagram(functions, files_data):
         imports = files_data[file_name]["imports"] if file_name else []
 
         # Create a table structure to organize the information within the node
-        label = f"""<
+        label = f"""< 
         <table border="0" cellborder="1" cellspacing="0" cellpadding="4" width="200">
             <tr><td><b>File</b></td><td>{file_name}</td></tr>
             <tr><td><b>Imports</b></td><td>{', '.join(imports) if imports else 'None'}</td></tr>
@@ -121,10 +129,6 @@ def create_class_diagram(functions, files_data):
                 edges.add(edge)
 
     return dot
-
-
-
-
 
 def main():
     directory_path = 'archivos'  # Replace with the path to your directory of Julia files
